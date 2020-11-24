@@ -6,6 +6,8 @@ import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from queue import PriorityQueue
+
 from confluent_kafka.cimpl import KafkaException
 from kafka import KafkaConsumer, KafkaProducer
 from confluent_kafka import Consumer, Producer
@@ -14,7 +16,7 @@ from wgent.acl.messages import ACLMessage
 from wgent.behaviours.protocols import FipaRequestProtocol, Behaviour, TimedBehaviour
 from wgent.config import CONFIG_PATH, DEFAULT_AGENT_CONFIG
 from wgent.core.aid import AID
-from wgent.utility import BehaviourError
+from wgent.utility import BehaviourError, AgentStoppedError, string2timestamp
 from collections import namedtuple
 from functools import partial
 
@@ -385,8 +387,8 @@ class AgentFactory(object):
 
     def launch_transport(self):
         while True:
-            if self.agent_ref.stopped:
-                return
+            # if self.agent_ref.stopped:
+            #     return
             self.transport.receive_process(self.react, self.table, self.is_table_updated)  # Transport Service
             self.is_table_updated = False
 
@@ -394,10 +396,11 @@ class AgentFactory(object):
 # ---------------------System Behaviours-----------------------
 class CompConnection(FipaRequestProtocol):
     """
-    This class implements the agent's behaviour
-    that answers the solicitations the AMS
-    makes to detect if the agent is connected or not.
-    Default behaviour for each agent to manage the agent's status
+    1. Default behaviour for each agent is to manage the agent's status
+    2. Update agent's config
+    3. Add new behaviour for agent ? (So I can know all method in Agent Class ?)
+    4. ...
+
     """
 
     def __init__(self, agent):
@@ -412,38 +415,39 @@ class CompConnection(FipaRequestProtocol):
                                              message=None,
                                              is_initiator=False)
 
+        self.status_operators = self.agent.status_operators
+
     def handle_inform(self, message):
         """
             Solve message from system.
         :param message:
         :return:
         """
-
         super(CompConnection, self).handle_inform(message)
-        # try:
-        #     reply_list = message.reply_to
-        #
-        #     # # update table
-        #     # name, server, topic = message.sender.split('@')
-        #     # if name not in self.agent.agent_instance.table.keys():
-        #     #     self.agent.agent_instance.table[name] = (server, topic, self.agent.ALIVE, int(time.time()))
-        #     #     print("Update {}'s Table to {}".format(self.agent.aid, self.agent.agent_instance.table))
-        #     # else:
-        #     #     print("Do not need to update table")
-        #     #     # create a reply
-        #     #     if self.agent.aid not in reply_list:
-        #     #         # If reply to us that do nothing.
-        #     #         acl = message.create_reply()
-        #     #         acl.add_reply_to(message.sender)
-        #     #         acl.content = self.agent.aid + ': ' + self.agent.status
-        #     #         self.agent.send(acl)
-        # except Exception as e:
-        #     logging.info(e)
+        # 1. 判断通知是否符合加密规则
+        content = message.content
+        if content in self.status_operators:
+            if content == self.agent.START:
+                # 2. Start Agent (Reload all behaviour)
+                self.agent.restart()
+            elif content == self.agent.STOP:
+                # 3. Stop Agent (Stop all normal behaviours)
+                self.agent.stop()
+            else:
+                pass
+            print("Agent {}...".format(self.agent.status))
 
     def on_start(self):
-        acl = ACLMessage(ACLMessage.INFORM)
-        acl.set_protocol(ACLMessage.FIPA_REQUEST_PROTOCOL)
+        """
+
+        :return:
+        """
+        acl = ACLMessage(ACLMessage.INFORM)  # INFORM
+        acl.set_protocol(ACLMessage.FIPA_CONTRACT_NET_PROTOCOL)  # Online
         self.agent.send(acl)
+
+    def execute(self, message):
+        super(CompConnection, self).execute(message)
 
 
 class HeartbeatBehaviour(TimedBehaviour):
@@ -477,6 +481,7 @@ class HeartbeatBehaviour(TimedBehaviour):
         flag = self.agent.update_table_by_acl(message)
         if flag:
             print("New Agent Online: ", self.agent.agent_instance.table)
+            logging.info("Update Table to: {}".format(self.agent.agent_instance.table))
 
     def timed_behaviour(self):
         super(HeartbeatBehaviour, self).timed_behaviour()
@@ -488,11 +493,14 @@ class HeartbeatBehaviour(TimedBehaviour):
         """
         # Check if timeout occur in table, ('localhost:9092', 'test', 'alive', '154236541654')
         try:
-            self.update_status_in_table()
-            self.send_heartbeat_info()
-            super(HeartbeatBehaviour, self).on_time()
-        except Exception:
-            raise BehaviourError("Error in Behaviour.")
+            if not self.agent.stopped:
+                self.update_status_in_table()
+                self.send_heartbeat_info()
+                super(HeartbeatBehaviour, self).on_time()
+        except AgentStoppedError:
+            logging.info("Agent stop normal behaviours.")
+        except Exception as e:
+            logging.exception(e)
 
     def update_status_in_table(self):
         """
@@ -536,8 +544,10 @@ class Agent_(object):
     ALIVE = "alive"
     DEAD = "dead"
     STOP = "stop"
+    START = "start"
     RUNNING = "running"
-    status_list = [ALIVE, DEAD, STOP, RUNNING]
+    status_list = [ALIVE, DEAD, RUNNING, STOP]
+    status_operators = [STOP, START]
 
     def __init__(self, aid):
         """Initialization
@@ -555,6 +565,8 @@ class Agent_(object):
         self.agent_instance = None
         transport = "kafka"
         self.transport = KafkaTransport if transport == "kafka" else ConfluentKafkaTransport
+        self.produce_queue = PriorityQueue(maxsize=100)  # Send the message
+        self.system_queue = PriorityQueue(maxsize=20)  # Send the message
         # behaviour
         self.__behaviours = []  # About another agent's message
         self.system_behaviours = []  # About the ams message
@@ -562,17 +574,26 @@ class Agent_(object):
 
         # thread or process
         self.op = True
-        self.max_workers = 5
+        self.max_main_workers = 5
+        self.max_system_workers = 5
+        self.max_transport_workers = 5  # Not split the consumer and producer.
+        # 1. System Task(System Behaviour)
+        # 2. Main Task(Normal Behaviour)
+        # 3. Transport Task(Network Task)
         if self.op:
-            self.main_executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix='agent_')
-            self.transport_executor = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix='transport_')
+            self.main_executor = ThreadPoolExecutor(max_workers=self.max_main_workers, thread_name_prefix='agent_')
+            self.system_executor = ThreadPoolExecutor(max_workers=self.max_system_workers, thread_name_prefix='system_')
+            self.transport_executor = ThreadPoolExecutor(max_workers=self.max_transport_workers,
+                                                         thread_name_prefix='transport_')
         else:
-            self.main_executor = ProcessPoolExecutor(max_workers=self.max_workers)
-            self.transport_executor = ProcessPoolExecutor(max_workers=self.max_workers)
+            self.main_executor = ProcessPoolExecutor(max_workers=self.max_main_workers)
+            self.system_executor = ProcessPoolExecutor(max_workers=self.max_system_workers)
+            self.transport_executor = ProcessPoolExecutor(max_workers=self.max_transport_workers)
         self._stopped = False
+        self._restarting = False
         self.running_tasks = {}  # A sequence of Future
 
-    # Property
+    # ----------------Property-----------------------
     @property
     def aid(self):
         """Summary
@@ -639,6 +660,7 @@ class Agent_(object):
         else:
             raise ValueError('status must belong to the status list!')
 
+    # ---------------------Message-----------------
     def react(self, message):
         """This method should be overriden and will
         be executed all the times the agent receives
@@ -666,42 +688,20 @@ class Agent_(object):
                 return
         return message
 
-    def add_running_task(self, action, future):
-        """
-            Record the running task
-        :param action: An object
-        :param future: Result from "concurrent.futures.Executor"
-        :return:
-        """
-        self.running_tasks[action] = future
-        return True
-
-    def remove_running_task(self, key):
-        """
-            Remove the item from "running_task"
-        :param key: value in array
-        :return:
-        """
-        return self.running_tasks.pop(key)
-
     def send(self, message):
-        """This method calls the method self._send to sends
+        """
+            This method calls the method self._send to sends
         an ACL message to the agents specified in the receivers
         parameter of the ACL message.
 
         If the number of receivers is greater than 20, than a split
         will be done.
 
-        Parameters
-        ----------
-        message : ACLMessage
-            Message to be sent
+
+        :param message:
+        :return:
         """
-        # Define the message in agent's send.
-        message.set_sender(self.aid)
-        message.set_message_id()
-        message.set_datetime_now()
-        self._send(message)
+        self.wait_and_put(self.produce_queue, message)
 
     def _send(self, message):
         """This method effectively sends the message to receivers
@@ -744,28 +744,61 @@ class Agent_(object):
         logging.info(res)
         self.start_transport_task(self.agent_instance.send)
 
+    # -----------------Task--------------------------
+    def add_running_task(self, action, future):
+        """
+            Record the running task
+        :param action: An object
+        :param future: Result from "concurrent.futures.Executor"
+        :return:
+        """
+        self.running_tasks[action] = future
+        return True
+
+    def remove_running_task(self, key):
+        """
+            Remove the item from "running_task"
+        :param key: value in array
+        :return:
+        """
+        return self.running_tasks.pop(key)
+
     def start_transport_task(self, target, *args):
         """
-            Start a worker of Network Manager by "concurrent.futures.Executor".
+            Start a transport worker of Network Manager by "concurrent.futures.Executor".
         :param target: func
         :param args:
         :return:
         """
-        future = self.transport_executor.submit(target, *args)  # concurrent.futures.Future
-        task_name = f"{target.__str__() + getattr(target, '__name__')}_{int(time.time())}"
-        func = partial(self.future_done_callback, task_name)
-        future.add_done_callback(func)
-        self.add_running_task(task_name, future)
-        return future
+        return self.start_task(self.transport_executor, target, *args)
 
     def start_main_task(self, target, *args):
         """
-            Start a worker of main by "concurrent.futures.Executor".
+            Start a main worker of main by "concurrent.futures.Executor".
         :param target: func
         :param args:
         :return:
         """
-        future = self.main_executor.submit(target, *args)  # concurrent.futures.Future
+        return self.start_task(self.main_executor, target, *args)
+
+    def start_system_task(self, target, *args):
+        """
+            Start a system worker of main by "concurrent.futures.Executor".
+        :param target: func
+        :param args:
+        :return:
+        """
+        return self.start_task(self.system_executor, target, *args)
+
+    def start_task(self, task, target, *args):
+        """
+            Start a worker of main by "concurrent.futures.Executor".
+        :param task:
+        :param target:
+        :param args:
+        :return:
+        """
+        future = task.submit(target, *args)  # concurrent.futures.Future
         task_name = f"{target.__str__() + getattr(target, '__name__')}_{int(time.time())}"
         func = partial(self.future_done_callback, task_name)
         future.add_done_callback(func)
@@ -774,7 +807,7 @@ class Agent_(object):
 
     def future_done_callback(self, task_name, future):
         """
-            Check the finish of task
+            Check the situation of task
         :param task_name:
         :param future:
         :return:
@@ -786,29 +819,106 @@ class Agent_(object):
                 logging.exception("{} :::: {}".format(task_name, exception))
             self.remove_running_task(task_name)
 
+    def consumer_task(self, behaviour, acl):
+        """
+            The thread or process for producer in kafka.
+
+        :return:
+        """
+        if self._stopped:
+            return
+        behaviour.execute(acl)
+
+    def producer_task(self):
+        """
+            Execute a task for waiting to send message
+        :return:
+        """
+        while True:
+            message = self.wait_and_get(self.produce_queue)
+            message.set_sender(self.aid)
+            message.set_message_id()
+            message.set_datetime_now()
+            self._send(message)
+
+    def system_task(self):
+        """
+            Execute a task for executing the system's message
+        :return:
+        """
+        while True:
+            behaviour, message = self.wait_and_get(self.system_queue)
+            behaviour.execute(message)
+
+    # -------------Utils--------------
+    @staticmethod
+    def wait_and_get(queue):
+        return queue.get()[1]
+
+    @staticmethod
+    def wait_and_put(queue, item):
+        return queue.put((int(time.time()), item))
+
+    # ------------Manage Status---------------
+    def stop(self):
+        """
+            Just stop to execute the normal behaviour
+        :return:
+        """
+        self._stopped = True
+        self.main_executor.shutdown(False)  # Only shutdown the main Executor
+        self.status = self.STOP
+
+    def restart(self):
+        """
+
+        :return:
+        """
+        self._stopped = False
+        self._restarting = True
+        self.on_start()
+        self._restarting = False
+        self.status = self.ALIVE
+
     def on_start(self):
         """
         This method defines the initial behaviours of an agent.
 
         :return:
         """
+
         self.status = self.ALIVE
         # Agent Network Manager launch
         if not self.agent_instance:
             self.agent_instance = AgentFactory(self)
             self.agent_instance.transport = self.transport  # Define the transport
             self.agent_instance.start()
-        # System Behaviour launch
-        for system_behaviour in self.system_behaviours:
-            self.start_main_task(system_behaviour.on_start)
+        # Check if restart, True doesn't need to run above
+        if not self._restarting:
+            # Start a worker for sending message
+            self.start_transport_task(self.producer_task)
+            self.start_system_task(self.system_task)
+            # System Behaviour launch
+            for system_behaviour in self.system_behaviours:
+                self.start_system_task(system_behaviour.on_start)
+        else:
+            # restart the main executor
+            if self.op:
+                self.main_executor = ThreadPoolExecutor(max_workers=self.max_main_workers, thread_name_prefix='agent_')
+            else:
+                self.main_executor = ProcessPoolExecutor(max_workers=self.max_main_workers)
         # Current Agent Behaviour launch
-        self.__launch_agent_behaviours()
+        self.launch_agent_behaviours()
 
-    def __launch_agent_behaviours(self):
+    def launch_agent_behaviours(self):
         """Aux method to send behaviours
         """
         for behaviour in self.behaviours:
             self.start_main_task(behaviour.on_start)
+
+    @property
+    def stopped(self):
+        return self._stopped
 
 
 class Agent(Agent_):
@@ -836,6 +946,7 @@ class Agent(Agent_):
         self.agent_instance.table[name] = (server_addr, topic, self.ALIVE, int(time.time()))
         self.agent_instance.is_table_updated = True
 
+    # Heartbeat Using...
     def update_table_by_acl(self, message):
         """
             Update table by message info.
@@ -845,18 +956,20 @@ class Agent(Agent_):
         if not isinstance(message, ACLMessage):
             raise TypeError("Only support ACLMessage.")
         sender = message.sender
+        datetime_str = message.datetime
         name, server, topic = sender.split('@')
         if name in self.agent_instance.table.keys() and sender != self.aid:
             value = self.agent_instance.table[name]
             new_value = list(copy.copy(value))  # copy origin info
-            new_value[-1] = int(time.time())  # update time
-            if message.content in self.status_list:  #
+            new_value[-1] = int(string2timestamp(datetime_str))  # update time which is the
+            if message.content in self.status_list and message.content != new_value[-2]:  #
                 new_value[-2] = message.content  # content is status
                 self.agent_instance.table[name] = new_value  # update info
                 self.agent_instance.is_table_updated = True
-                return False
+                return True
             else:
-                logging.info("Wrong format with heartbeat from {} !!!".format(message.sender))
+                self.agent_instance.table[name] = new_value  # update info
+                return False
         else:
             # new agent online.
             new_value = AgentInfo(server, topic, message.content, int(time.time()))
@@ -865,31 +978,21 @@ class Agent(Agent_):
             return True
 
     def react(self, message):
+        """
+            React to the message
+        :param message:
+        :return:
+        """
         message = super(Agent, self).react(message)
         acl = ACLMessage()
         acl.from_dict(message)
         for behaviour in self.system_behaviours:
-            # Future version:0.0.2
-            self.start_transport_task(self.consumer_task, behaviour, acl)
-        for behaviour in self.behaviours:
-            # Future version:0.0.2
-            self.start_transport_task(self.consumer_task, behaviour, acl)
-
-    @staticmethod
-    def consumer_task(behaviour, acl):
-        """
-            The thread or process for producer in kafka.
-
-        :return:
-        """
-        behaviour.execute(acl)
-
-    def resume(self):
-        """
-            Stop all Behaviour and the subscribe/produce stop in behaviour.
-        :return:
-        """
-        self.on_start()
+            self.wait_and_put(self.system_queue, (behaviour, acl))  # queue in main_executor
+        # If not stop that run the normal behaviours.
+        if not self._stopped:
+            for behaviour in self.behaviours:
+                # Future version:0.0.2
+                self.start_transport_task(self.consumer_task, behaviour, acl)
 
     def on_start(self):
         """
@@ -897,21 +1000,9 @@ class Agent(Agent_):
         :return:
         """
         # Add Behaviours
-        # comp_connection = CompConnection(self)
-        heartbeat = HeartbeatBehaviour(self, 5)
-        # self.system_behaviours.append(comp_connection)
-        self.system_behaviours.append(heartbeat)
+        if not self._restarting:
+            comp_connection = CompConnection(self)
+            self.system_behaviours.append(comp_connection)  # system
+            heartbeat = HeartbeatBehaviour(self, 5)
+            self.behaviours.append(heartbeat)  # normal as main
         super(Agent, self).on_start()
-
-    def terminate(self):
-        """
-            Stop Agent's subprocess
-        :return:
-        """
-        self._stopped = True
-        self.main_executor.shutdown()
-        self.transport_executor.shutdown()
-
-    @property
-    def stopped(self):
-        return self._stopped

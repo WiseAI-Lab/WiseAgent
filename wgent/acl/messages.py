@@ -113,6 +113,24 @@ class ACLMessage(object):
         self.in_reply_to = None
         self.reply_by = None
 
+    def __gt__(self, other):
+        if self.to_timestamp(other.datetime) - self.to_timestamp(self.datetime) < 0:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def to_timestamp(datetime_data):
+        if isinstance(datetime_data, str):
+            datetime_data = datetime.astimezone(datetime_data)
+        return datetime_data.timestamp()
+
+    def __lt__(self, other):
+        if self.to_timestamp(other.datetime) - self.to_timestamp(self.datetime) > 0:
+            return True
+        else:
+            return False
+
     def set_performative(self, performative):
         """Method to set the Performative parameter of the ACL message.
 
@@ -308,7 +326,6 @@ class ACLMessage(object):
     def from_json(self, json_text: str) -> None:
         dict_text = json.loads(json_text)
         self.from_dict(dict_text)
-
 
     def from_dict(self, dict_text: dict) -> None:
         if "ACLMessage" in dict_text.keys():

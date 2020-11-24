@@ -3,6 +3,7 @@ from threading import Timer
 
 from wgent.acl.filters import Filter
 from wgent.acl.messages import ACLMessage
+from wgent.utility import AgentStoppedError
 
 
 class Behaviour(abc.ABC):
@@ -25,7 +26,6 @@ class Behaviour(abc.ABC):
         """Executes the actual behaviour of the protocol
             for each type of messege received.
         """
-        return True
 
     def on_start(self):
         """Always executed when the protocol is initialized
@@ -67,9 +67,13 @@ class TimedBehaviour(Behaviour):
         """This method executes the handle_all_proposes method if any
             FIPA_CFP message sent by the agent does not get an answer.
         """
+        if self.agent.stopped:
+            self.timer.cancel()
+            raise AgentStoppedError("Timed Behaviour stop...")
         self.timer.run()
 
     def execute(self, message):
+        super(TimedBehaviour, self).execute(message)
         if self.filter_self.filter(message):
             return
 
