@@ -1,3 +1,7 @@
 kafka-python
+confluent-kafka
 numpy
+pandas
 click
+dicttoxml
+mypy

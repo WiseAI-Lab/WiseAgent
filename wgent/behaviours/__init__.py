@@ -1,1 +1,3 @@
-from .base import Behaviour, RLBehaviour
+__all__ = ["Behaviour"]
+
+from .base import Behaviour

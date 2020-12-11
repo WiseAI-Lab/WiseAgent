@@ -1,31 +1,3 @@
-"""Framework for Intelligent Agents Development - PADE
-
-The MIT License (MIT)
-
-Copyright (c) 2019 Lucas S Melo
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-"""
-import copy
-
-import dicttoxml
-
 """
     FIPA-ACL message creation and handling module
     -----------------------------------------------------
@@ -35,16 +7,20 @@ import dicttoxml
     in the exchange of messages between agents.
 
 """
+import copy
+import dicttoxml
 import json
 from datetime import datetime
 from uuid import uuid1
-from wgent.core.aid import AID
+from wgent.acl import AID
+from typing import Optional, Union, NoReturn
 
 
-class ACLMessage(object):
-    """Class that implements a ACLMessage message type
+class MessageType(object):
     """
-
+        Class that implements a ACLMessage message type
+    """
+    # performatives
     ACCEPT_PROPOSAL = 'accept-proposal'
     AGREE = 'agree'
     CANCEL = 'cancel'
@@ -67,6 +43,7 @@ class ACLMessage(object):
     PROXY = 'proxy'
     PROPAGATE = 'propagate'
     HEARTBEAT = 'heartbeat'
+    # protocols
     FIPA_REQUEST_PROTOCOL = 'fipa-request protocol'
     FIPA_QUERY_PROTOCOL = 'fipa-query protocol'
     FIPA_REQUEST_WHEN_PROTOCOL = 'fipa-request-when protocol'
@@ -80,23 +57,55 @@ class ACLMessage(object):
                      'refuse', 'reject-proposal', 'request',
                      'request-when', 'request-whenever', 'subscribe',
                      'inform-if', 'proxy', 'propagate', 'heartbeat']
-
     protocols = ['fipa-request protocol', 'fipa-query protocol', 'fipa-request-when protocol',
                  'fipa-contract-net protocol']
 
-    def __init__(self, performative=None):
-        """ This method initializes a ACLMessage object when it is instantiated.
 
-            :param performative: Type of the message to be created according to FIPA standard.
-            It can be INFORM, CFP, AGREE, PROPOSE...
-            All these types are attributes of ACLMessafe class.
-        """
+class ACLMessage(object):
+    """
+        ACLMessage Structure.
+        Implement from http://www.fipa.org/specs/fipa00061/SC00061G.html
+
+        1.--------------Type of Communicative Act----------------------
+            performative: Denotes the type of the communicative act of the ACL message
+
+        2.--------------Participants in Communication-------------------
+            sender: Denotes the identity of the sender of the message, that is, the name of
+                    the agent of the communicative act.
+            receiver: Denotes the identity of the intended recipients of the message.
+            reply-to: This parameter indicates that subsequent messages in this conversation
+                    thread are to be directed to the agent named in the reply-to parameter,
+                    instead of to the agent named in the sender parameter
+
+        3.--------------Content of Message-----------------------------
+            content: Denotes the content of the message; equivalently denotes the object of the action.
+                    The meaning of the content of any ACL message is intended to be interpreted by the
+                    receiver of the message. This is particularly relevant for instance when referring to
+                    referential expressions, whose interpretation might be different for the sender and
+                    the receiver.
+        2.--------------Description of Content------------------------
+            language: Denotes the language in which the content parameter is expressed.
+            encoding: Denotes the specific encoding of the content language expression.
+            ontology: Denotes the ontology(s) used to give a meaning to the symbols in the content
+                    expression.
+
+        3.--------------Control of Conversation-----------------------
+            protocol: Denotes the interaction protocol that the sending agent is employing with
+                    this ACL message.
+            conversation-id: Introduces an expression (a conversation identifier) which is used to
+                    identify the ongoing sequence of communicative acts that together form a conversation.
+            reply-with: Introduces an expression that will be used by the responding agent to
+                    identify this message.
+            in-reply-to: Denotes an expression that references an earlier action to which this
+                    message is a reply.
+            reply-by: Denotes a time and/or date expression which indicates the latest time by which
+                    the sending agent would like to receive a reply.
+    """
+
+    def __init__(self, performative: Optional[str] = None):
         if performative != None:
-            if performative.lower() in self.performatives:
+            if performative.lower() in MessageType.performatives:
                 self.performative = performative.lower()
-        else:
-            self.performative = None
-
         self.conversation_id = str(uuid1())
         self.messageID = str(uuid1())
         self.datetime = datetime.now()
@@ -137,15 +146,18 @@ class ACLMessage(object):
            :param performative: performative type of the message.
            It can be any of the attributes of the ACLMessage class.
         """
-        self.performative = performative
+        if performative in MessageType.performatives:
+            self.performative = performative
+        else:
+            raise ValueError("Performative is not exists.")
 
-    def set_system_message(self, is_system_message):
+    def set_system_message(self, is_system_message) -> NoReturn:
         self.system_message = is_system_message
 
-    def set_datetime_now(self):
+    def set_datetime_now(self) -> NoReturn:
         self.datetime = datetime.now()
 
-    def set_sender(self, aid):
+    def set_sender(self, aid: Union[AID, str]) -> NoReturn:
         """Method to set the agent that will send the message.
 
         :param aid: AID type object that identifies the agent that will send the message.
@@ -155,7 +167,7 @@ class ACLMessage(object):
         else:
             self.set_sender(AID(name=aid))
 
-    def add_receiver(self, aid):
+    def add_receiver(self, aid: Union[AID, str]) -> NoReturn:
         """Method used to add recipients for the message being created.
 
         :param aid: AID type object that identifies the agent that will receive the message.
@@ -166,7 +178,7 @@ class ACLMessage(object):
         else:
             self.add_receiver(AID(name=aid))
 
-    def add_reply_to(self, aid):
+    def add_reply_to(self, aid: Union[AID, str]) -> NoReturn:
         """Method used to add the agents that should receive the answer of the message.
 
         :param aid: AID type object that identifies the agent that will receive the answer of this message.

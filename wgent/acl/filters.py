@@ -23,8 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from wgent.core.aid import AID
-from wgent.acl.messages import ACLMessage
+from wgent.acl import AID, ACLMessage
 
 
 class Filter():

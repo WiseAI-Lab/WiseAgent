@@ -1,12 +1,7 @@
 from wgent.agents import Agent
-from tianshou.policy.modelfree import dqn
 import torch
-from torch import nn
-from wgent.behaviours.networks import ResNet, BasicBlock
-from tianshou.policy import DQNPolicy
 import argparse
-from tianshou.utils.net.common import Net
-from wgent.behaviours.rl.rl_tianshou.DQNBehaviours import LearnerBehaviour, ActorBehaviour
+from wgent.behaviours.nn.rl.rl_tianshou import LearnerBehaviour, ActorBehaviour
 
 def get_args():
     parser = argparse.ArgumentParser()

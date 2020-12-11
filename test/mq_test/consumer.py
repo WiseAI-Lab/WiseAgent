@@ -9,7 +9,7 @@ def call_func(message):
 
 
 def new_consumer():
-    consumer = KafkaConsumer(bootstrap_servers='localhost:32771')
+    consumer = KafkaConsumer(bootstrap_servers='115.159.153.135:32768')
     consumer.subscribe(['topic1'])
     for msg in consumer:
         call_func(msg)

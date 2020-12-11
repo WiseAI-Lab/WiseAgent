@@ -2,7 +2,7 @@ import logging
 
 from wgent.acl.messages import ACLMessage
 from wgent.behaviours.protocols import FipaRequestProtocol, TimedBehaviour
-from wgent.core.agent import Agent_
+from wgent import Agent
 from wgent.utility import display_message
 
 
@@ -81,7 +81,7 @@ class SnifferCompConnection(FipaRequestProtocol):
         pass
 
 
-class Sniffer(Agent_):
+class Sniffer(Agent):
     """
         NETWORK INSPECT
     """

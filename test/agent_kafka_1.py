@@ -1,10 +1,10 @@
-from wgent.core.agent import Agent, ConfluentKafkaTransport
+from wgent.core.agent import Agent
 from wgent.utility import start_loop
 
 
 class KafkaAgent_1(Agent):
     def __init__(self):
-        name = 'test_1@localhost:32769@topic1'
+        name = 'test_1@115.159.153.135:32769@topic1'
         super(KafkaAgent_1, self).__init__(name)
 
 

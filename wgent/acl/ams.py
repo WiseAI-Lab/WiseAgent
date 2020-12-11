@@ -2,10 +2,8 @@
 Ams
 """
 import logging
-from wgent.acl.messages import ACLMessage
-
 from wgent.behaviours.protocols import FipaRequestProtocol
-from wgent.core.agent import Agent_
+from wgent import Agent
 from wgent.utility import display_message
 
 
@@ -55,7 +53,7 @@ class AmsCompConnection(FipaRequestProtocol):
             logging.info(e)
 
 
-class Ams(Agent_):
+class Ams(Agent):
     """
         NETWORK INSPECT
     """
