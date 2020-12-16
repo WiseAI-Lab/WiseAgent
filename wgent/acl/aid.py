@@ -1,6 +1,7 @@
 """
     Agent Identifier Class
 """
+from wgent.utility import random_string
 
 
 class AID(object):
@@ -41,6 +42,12 @@ class AID(object):
             self.user_defined_properties = user_defined_properties
         else:
             self.user_defined_properties = list()  # properties
+
+    @classmethod
+    def create_offline_aid(cls):
+        agent_name = f"local_agent_{random_string(10)}"
+        name = f"{agent_name}@localhost:0000@local"
+        return cls(name)
 
     def set_local_name(self, name):
         """

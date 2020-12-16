@@ -1,4 +1,4 @@
-from wgent.core.agent import Agent
+from agents.agent import Agent
 from wgent.utility import start_loop
 
 

@@ -1,7 +1,12 @@
-# Wgent: A Easy-going Agent Framework
+# Wise-Agent: A Easy-going Agent Framework
+![image](https://github.com/Dongbox/wgent/logo.png)
+
+### Features
+
+- Self-defined agent market and behaviour market
+- Define all action in Agent to the behaviour apparently.
+- Use asyncio to manage the agent and behaviours
+- Use Thread pool and Process pool in behaviours.
 
 
-
-### TODO
-- Update Agent base class structure as the acme.
-- Add typing in the whole code.
+Developing...

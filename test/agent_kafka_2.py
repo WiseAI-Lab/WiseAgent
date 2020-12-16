@@ -1,7 +1,7 @@
 """
     Example: Agent take an message behaviours
 """
-from wgent.core.agent import Agent, ConfluentKafkaTransport
+from agents.agent import Agent
 from wgent.utility import start_loop
 
 

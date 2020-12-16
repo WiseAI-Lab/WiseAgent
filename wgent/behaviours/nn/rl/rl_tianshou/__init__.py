@@ -1,1 +1,0 @@
-from behaviour import TrainerBehaviour, CollectorBehaviour, LearnerBehaviour

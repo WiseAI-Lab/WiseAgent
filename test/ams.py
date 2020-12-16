@@ -2,9 +2,9 @@
     Example: Agent take an message behaviours
 """
 from wgent.acl.messages import ACLMessage
-from wgent.core.agent import Agent_
-from wgent.utility import start_loop, AgentStoppedError
-from wgent.behaviours.protocols import FipaRequestProtocol
+from agents.agent import Agent_
+from wgent.utility import start_loop
+from wgent.behaviours.normal.protocols import FipaRequestProtocol
 
 
 class MainAgent(Agent_):

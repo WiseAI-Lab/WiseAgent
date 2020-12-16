@@ -3,4 +3,6 @@ pade/
 test/*.json
 tianshou/
 setup.py
-/test/logs/
+test/logs/
+logs/
+.vscode

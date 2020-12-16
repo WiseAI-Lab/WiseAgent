@@ -2,15 +2,16 @@ from confluent_kafka import Consumer
 
 
 c = Consumer({
-    'bootstrap.servers': '110.43.54.253:1025',
-    'group.id': 'test',
-    'auto.offset.reset': 'earliest'
+    'bootstrap.servers': '115.159.153.135:32771',
+    'group.id': 'Test',
+    'auto.offset.reset': 'earliest',
+    'client.id': "consumer_1"
 })
 
 c.subscribe(['topic1'])
 
 while True:
-    msg = c.poll(1.0)
+    msg = c.poll(0)
 
     if msg is None:
         continue

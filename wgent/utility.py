@@ -1,15 +1,19 @@
 from __future__ import annotations
 import copy
-import json
+import random
 import time
 import logging
 import os
+from asyncio import Future
+from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
+from functools import partial
+from typing import Dict, Union, Any
+
 import click
 
 # Env Config.
-from wgent.config import DEFAULT_AGENT_CONFIG
-
 WGENT_LOG_KEY = 'WGENT_LOG'
 WGENT_LOG_FILE_KEY = 'WGENT_LOG_FILE'
 
@@ -28,7 +32,7 @@ class AgentStoppedError(AgentError):
 
 def display_message(name, data):
     """
-        Method do displsy message in the console.
+        Method do display message in the console.
     """
     date = datetime.now()
     date = date.strftime('%d/%m/%Y %H:%M:%S.%f')[:-3]
@@ -50,6 +54,58 @@ def string2timestamp(value: str):
         return timestamp
 
 
+def random_string(length: int = 5):
+    """
+        Generate ranfom string by length.
+        >>> assert len(random_string(10)) == 10
+    """
+    alphabet = 'abcdefghijklmnopqrstuvwxyz'
+    characters = random.sample(alphabet, length)
+    return "".join(characters)
+
+
+def start_task(running_tasks: Dict[str, Future],
+               pool_executor: Union[ThreadPoolExecutor, ProcessPoolExecutor],
+               target: Any,
+               *args,
+               ) -> Dict[str, Future]:
+    """
+        Start a worker of main by "concurrent.futures.Executor".
+    :param running_tasks: List
+    :param pool_executor: ThreadPoolExecutor or ProcessPoolExecutor
+    :param target: Any
+    :param args: Any
+    :return:
+    """
+
+    def _future_done_callback(task_name: str, future: Future):
+        """
+            Check the situation of task
+        :param task_name: str
+        :param future: Future
+        :return:
+        """
+        nonlocal running_tasks
+        exception = future.exception()
+        if exception:
+            logger.exception("{} :::: {}".format(task_name, exception))
+
+        try:
+            running_tasks.pop(task_name)
+        except KeyError:
+            logger.exception("The task:{} is not in Brain._running_tasks".format(task_name))
+
+    future: Future = pool_executor.submit(target, *args)  # concurrent.futures.Future
+    # Define a key.
+    task_name: str = f"random_{random_string(20)}_{target.__class__.__name__ + getattr(target, '__name__')}_{int(time.time())}"
+    running_tasks[task_name] = future
+    func = partial(_future_done_callback, task_name)
+    # Add callback function.
+    future.add_done_callback(func)
+    # Add to a self-definition task dict.
+    return running_tasks
+
+
 def start_loop(agents: list):
     if not isinstance(agents, list):
         agents = [agents]
@@ -63,29 +119,6 @@ def start_loop(agents: list):
             pass
         except KeyboardInterrupt:
             pass
-
-
-def read_config():
-    """
-        Read the config from file if exist else generate.
-    """
-    config_path = DEFAULT_AGENT_CONFIG.CONFIG_PATH
-    if os.path.exists(DEFAULT_AGENT_CONFIG):
-        try:
-            with open(config_path, 'r') as f:
-                content = f.read()
-                config_content = json.loads(content)
-        except Exception as e:
-            logger.info(f"Config {e}...Regenerate...")
-            config_content = DEFAULT_AGENT_CONFIG
-    else:
-        config_content = DEFAULT_AGENT_CONFIG
-        try:
-            with open(config_path, 'w') as f:
-                f.write(config_content)
-        except Exception as e:
-            raise IOError(f"Cannot write the agent config to {config_path}")
-    return config_content
 
 
 def get_logger(name: str) -> logging.Logger:

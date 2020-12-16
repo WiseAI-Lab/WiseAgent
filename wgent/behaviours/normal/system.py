@@ -13,12 +13,60 @@
 # ---------------------System Behaviours-----------------------
 import copy
 import time
+from threading import Timer
 
+from wgent.base import Agent_
 from wgent.acl import Filter
 from wgent.acl.messages import ACLMessage
-from wgent.behaviours.base import TimedBehaviour
-from wgent.behaviours.protocols import FipaRequestProtocol
+from wgent.behaviours import Behaviour
+from wgent.behaviours.normal.protocols import FipaRequestProtocol
 from wgent.utility import logger, AgentStoppedError
+
+
+class TimedBehaviour(Behaviour):
+    """Class that implements timed behaviours
+    """
+
+    def __init__(self, agent: Agent_, time: int):
+        """ Initialize method
+        """
+        super(TimedBehaviour, self).__init__(agent)
+        self.time = time
+        self.timer = None
+
+        self.filter_self = Filter()
+        self.filter_self.set_sender(self.agent.aid)
+
+    def on_start(self) -> None:
+        """This method overrides the on_start method from Behaviour class
+            and implements aditional settings to the initialize method of TimedBehaviour behaviour.
+        """
+        Behaviour.on_start(self)
+        self.timed_behaviour()
+
+    def timed_behaviour(self) -> None:
+        """This method is always used when the implemented behaviour
+            needs timed restrictions.
+            In this case, it uses the twisted callLater method, which
+            receives a method and delay as parameters to be executed
+
+        """
+        self.timer = Timer(self.time, self.on_time)
+        self.timer.start()
+
+    def on_time(self) -> None:
+        """This method executes the handle_all_proposes method if any
+            FIPA_CFP message sent by the agent does not get an answer.
+        """
+        if self.agent.stopped:
+            self.timer.cancel()
+            raise AgentStoppedError("Timed Behaviour stop...")
+        self.timer.run()
+
+    def execute(self, message) -> None:
+        super(TimedBehaviour, self).execute(message)
+        if self.filter_self.filter(message):
+            return
 
 
 class CompConnection(FipaRequestProtocol):
@@ -58,7 +106,7 @@ class CompConnection(FipaRequestProtocol):
                 # 2. Start Agent (Reload all behaviour)
                 self.agent.restart()
             elif content == self.agent.STOP:
-                # 3. Stop Agent (Stop all normal behaviours)
+                # 3. Stop Agent (Stop all alive behaviours)
                 self.agent.stop()
             else:
                 pass
@@ -123,7 +171,7 @@ class HeartbeatBehaviour(TimedBehaviour):
                 self.send_heartbeat_info()
                 super(HeartbeatBehaviour, self).on_time()
         except AgentStoppedError:
-            logger.info("Agent stop normal behaviours.")
+            logger.info("Agent stop alive behaviours.")
         except Exception as e:
             logger.exception(e)
 

@@ -12,8 +12,8 @@ import dicttoxml
 import json
 from datetime import datetime
 from uuid import uuid1
-from wgent.acl import AID
-from typing import Optional, Union, NoReturn
+from .aid import AID
+from typing import Optional, Union, NoReturn, List, Dict
 
 
 class MessageType(object):
@@ -111,7 +111,7 @@ class ACLMessage(object):
         self.datetime = datetime.now()
         self.system_message = False
         self.sender = None
-        self.receivers = list()
+        self.receivers: List[Union[AID, str]] = list()
         self.reply_to = list()
         self.content = None
         self.language = None
@@ -131,10 +131,14 @@ class ACLMessage(object):
     @staticmethod
     def to_timestamp(datetime_data):
         if isinstance(datetime_data, str):
-            datetime_data = datetime.astimezone(datetime_data)
+            try:
+                datetime_data = datetime.fromisoformat(datetime_data)  # datetime.datetime
+            except TypeError:
+                datetime_data = datetime.astimezone(datetime_data)  # datetime.timestamp
         return datetime_data.timestamp()
 
     def __lt__(self, other):
+        # switch to timestamp to check the lt
         if self.to_timestamp(other.datetime) - self.to_timestamp(self.datetime) > 0:
             return True
         else:
@@ -317,7 +321,32 @@ class ACLMessage(object):
         # Remove the unpicklable entries.
         return state
 
-    def as_dict(self) -> dict:
+    def encode(self, mode: Optional[str] = "json") -> Union[str, Dict, bytes]:
+        if mode == "json":
+            return json.dumps(self._as_dict()).encode("utf8")
+        elif mode == "dict":
+            return self._as_dict()
+        elif mode == "xml":
+            return self._as_xml()
+        else:
+            raise KeyError("mode should be json, dict or xml")
+
+    def decode(self, content: Union[str, Dict], mode: Optional[str] = None):
+        if mode is None:
+            if type(content) == str:
+                mode = "json"
+            elif type(content) == dict:
+                mode = "dict"
+
+        if mode == "json":
+            dict_text = json.loads(content)
+            self._from_dict(dict_text)
+        elif mode == "dict":
+            self._from_dict(content)
+        else:
+            raise KeyError("mode should be json, dict or xml")
+
+    def _as_dict(self) -> dict:
         dict_data = copy.copy(self.__dict__)
         dict_data['sender'] = str(dict_data['sender'])
         dict_data['datetime'] = str(dict_data['datetime'])
@@ -325,21 +354,14 @@ class ACLMessage(object):
         dict_data['reply_to'] = [str(reply) for reply in dict_data['reply_to']]
         return dict_data
 
-    def as_json(self) -> str:
-        return json.dumps(self.as_dict())
-
-    def as_xml(self):
-        dict_text = self.as_dict()
+    def _as_xml(self):
+        dict_text = self._as_dict()
         dict_text['sender'] = str(dict_text['sender'].name)
         dict_text['receivers'] = [str(r.name) for r in dict_text['receivers']]
         dict_text['reply_to'] = [str(r.name) for r in dict_text['reply_to']]
         return dicttoxml.dicttoxml(dict_text, root=True, custom_root='ACLMessage')
 
-    def from_json(self, json_text: str) -> None:
-        dict_text = json.loads(json_text)
-        self.from_dict(dict_text)
-
-    def from_dict(self, dict_text: dict) -> None:
+    def _from_dict(self, dict_text: dict) -> None:
         if "ACLMessage" in dict_text.keys():
             dict_text = dict_text['ACLMessage']
         self.__dict__.update(dict_text)  # simple version, not validate now

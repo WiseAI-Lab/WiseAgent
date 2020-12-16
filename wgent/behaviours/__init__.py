@@ -1,3 +1,3 @@
-__all__ = ["Behaviour"]
+from .behaviour import Behaviour, InternalBehaviour, ExternalBehaviour
 
-from .base import Behaviour
+__all__ = ["Behaviour", "InternalBehaviour", "ExternalBehaviour"]

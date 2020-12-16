@@ -1,22 +1,20 @@
-import json
-
 from kafka import KafkaConsumer
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from wgent.behaviours.transport import AgentTable
 
 
 def call_func(message):
     print(message)
 
 
-def new_consumer():
-    consumer = KafkaConsumer(bootstrap_servers='115.159.153.135:32768')
-    consumer.subscribe(['topic1'])
-    for msg in consumer:
-        call_func(msg)
+def new_consumer(receivers):
+    while True:
+        for server_host, topics in receivers.items():
+            consumer = KafkaConsumer(bootstrap_servers=server_host, group_id="Test", client_id="consumer_2", )
+            consumer.subscribe(topics)
+            records = consumer.poll(0)
+            print(records.values())
 
 
 if __name__ == '__main__':
-    t_exe = ThreadPoolExecutor(max_workers=5)
-    t_exe.submit(new_consumer)
-    while True:
-        pass
+    receivers = AgentTable().return_as_sub()
+    new_consumer(receivers)

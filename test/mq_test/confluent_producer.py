@@ -1,6 +1,6 @@
 from confluent_kafka import Producer
-
-p = Producer({'bootstrap.servers': 'localhost:32771'})
+from wgent.acl.messages import ACLMessage
+from wgent.behaviours.transport import AgentTable
 
 
 def delivery_report(err, msg):
@@ -12,15 +12,14 @@ def delivery_report(err, msg):
         print('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
 
 
-for data in ['test something']:
-    # Trigger any available delivery report callbacks from previous produce() calls
-    p.poll(0)
+def new_producer(receivers):
+    for server_host, topics in receivers.items():
+        msg = ACLMessage()
+        p = Producer({'bootstrap.servers': server_host, 'group.id': "Test", 'client.id': "producer_1"})
+        p.produce(topics[0], msg.encode("json"), callback=delivery_report)
+        p.flush()
 
-    # Asynchronously produce a message, the delivery report callback
-    # will be triggered from poll() above, or flush() below, when the message has
-    # been successfully delivered or failed permanently.
-    p.produce('mytopic', data.encode('utf-8'), callback=delivery_report)
 
-# Wait for any outstanding messages to be delivered and delivery report
-# callbacks to be triggered.
-p.flush()
+if __name__ == '__main__':
+    receivers = AgentTable().return_as_sub()
+    new_producer(receivers)
