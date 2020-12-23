@@ -1,5 +1,5 @@
 # Wise-Agent: A Easy-going Agent Framework
-![image](https://github.com/Dongbox/wgent/logo.png)
+![image](https://github.com/Dongbox/wgent/blob/main/logo.png)
 
 ### Features
 

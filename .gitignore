@@ -1,8 +1,10 @@
 .idea/
 pade/
-test/*.json
+test/
 tianshou/
 setup.py
 test/logs/
 logs/
 .vscode
+/wise_agent/.agent_config.json
+.mypy_cache
