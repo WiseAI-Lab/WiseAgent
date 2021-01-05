@@ -13,7 +13,7 @@ class Actor(abc.ABC):
         """Capture all information from environment.
         """
 
-    def update(self, wait: bool = False):
+    def update(self, *args, wait: bool = False, **kwargs):
         """Perform an update of the actor parameters from past observations.
         Args:
           wait: if True, the update will be blocking.
