@@ -13,6 +13,7 @@ class Agent(base.Agent_):
     """
     # Agent alive when it have brain.
     brain_behaviour: Optional[BrainBehaviour] = None
+    transport_behaviour = None
 
     def __init__(self, aid: Union[AID, str]):
         super(Agent, self).__init__(aid)
@@ -61,16 +62,24 @@ class Agent(base.Agent_):
 
         """
 
-    def send(self, task: MemoryPiece):
+    def send(self, memory: MemoryPiece, is_outside=False):
         """
-        Send a task.
+        Send a memory.
 
         Args:
-            task: TaskPiece
+            memory: MemoryPiece
+            is_outside: Boolean
 
         Returns: None
 
         """
+        self.memory_handler.wait_and_put(self.memory_pieces_queue, memory)
+        # In online Agent, the task possible send outside to other agent.
+        if is_outside and self.transport_behaviour:
+            message = memory.content
+            message.set_sender(self.aid)
+            message.set_datetime_now()
+            self.transport_behaviour.push(message)
 
     def on_start(self):
         """
@@ -92,7 +101,7 @@ class Agent(base.Agent_):
 
         """
         # Check brain first
-        if not self.brain_behaviour:
+        if self.brain_behaviour is None:
             raise ValueError("Agent should have a brain behaviour.")
         self.brain_behaviour = self.brain_behaviour(self)
 
@@ -104,84 +113,10 @@ class Agent(base.Agent_):
                 daemon_tasks.append(behaviour)
             else:
                 behaviour.on_start()
-
+        if self.transport_behaviour is not None:
+            self.transport_behaviour = self.transport_behaviour(self)  # use kafka to be the transport.
+            self.add_behaviours([self.transport_behaviour])
         # Add brain behaviour
         self.add_behaviours([self.brain_behaviour])
         # Run brain behaviour in async.
         asyncio.run(self.brain_behaviour.on_start(daemon_tasks))
-
-
-class OfflineAgent(Agent):
-    """
-        Only do some task offline.
-    """
-
-    def __init__(self, aid: Union[AID, str]):
-        super(OfflineAgent, self).__init__(aid)
-
-    def on_start(self):
-        """
-            Maybe you can do something here.
-        """
-        super(OfflineAgent, self).on_start()
-
-    def send(self, task: MemoryPiece):
-        """
-        In offline Agent, the task will only execute among this agent's behaviour.
-
-        Args:
-            task: TaskPiece, the 'Memory' will encompass in a 'TaskPiece'.
-
-        Returns: None
-
-        """
-        # Take it into memory ana execute inside.
-        self.memory_handler.wait_and_put(self.memory_pieces_queue, task)
-
-
-class OnlineAgent(Agent):
-    """
-        Only do some task online and it default contains the Transport Behaviour.
-    """
-    transport_behaviour = None
-
-    def __init__(self, aid: Union[AID, str]):
-        super(OnlineAgent, self).__init__(aid)
-
-    def on_start(self):
-        """
-        When current agent is on start, the transport behaviour will start along with it.
-
-        Returns: None
-
-        """
-        # start the transport
-        # You can define your transport behaviour and change the 'self.transport_behaviour'.
-        if self.transport_behaviour is None:
-            raise ImportError("OnlineAgent should define the TransportBehaviour...")
-        self.transport_behaviour = self.transport_behaviour(self)  # use kafka to be the transport.
-        self.add_behaviours([self.transport_behaviour])
-        # Start the brain behaviour
-        super(OnlineAgent, self).on_start()
-
-    def send(self, memory: MemoryPiece, is_outside: bool = False):
-        """
-        In online Agent, the task will execute among this agent's behaviour and
-            if 'is_outside' is True that it send the message which in task to
-            the 'ACLMessage.receivers' through the self.transport.
-
-        Args:
-            memory: MemoryPiece
-            is_outside: bool, whether send the message to other agent.
-
-        Returns: None
-
-        """
-        # Take it into memory ana execute inside.
-        self.memory_handler.wait_and_put(self.memory_pieces_queue, memory)
-        # In online Agent, the task possible send outside to other agent.
-        if is_outside:
-            message = memory.content
-            message.set_sender(self.aid)
-            message.set_datetime_now()
-            self.transport_behaviour.push(message)

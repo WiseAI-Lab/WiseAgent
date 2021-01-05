@@ -5,7 +5,7 @@ from wise_agent.acl import AID
 from wise_agent.base_types import AgentState
 from wise_agent.config import ConfigHandler
 from wise_agent.core import Actor
-from wise_agent.memory import MemoryStorage, MemoryHandler
+from wise_agent.memory import MemoryHandler
 
 
 class Agent_(Actor):
@@ -18,10 +18,9 @@ class Agent_(Actor):
         self._status: str = AgentState.DEAD  # Represent the Agent State
         # Actually the agent should place their memory in brain, but I define the brain outside
         # this class because the brain is a thinking behaviour in 'wise_agent'.
-        self.memory_storage = MemoryStorage()  # Storage the memory if you want.
+        self.config_handler = ConfigHandler()
         self.memory_pieces_queue: PriorityQueue = PriorityQueue(maxsize=100)  # Delivery any message in agent.
         self.memory_handler = MemoryHandler()  # Some function to handle the memory in agent.
-        self.config_handler = ConfigHandler()
 
     @property
     def aid(self):

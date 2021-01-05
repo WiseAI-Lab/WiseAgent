@@ -13,16 +13,34 @@ class Config:
         super(Config, self).__init__()
         if configs is None:
             self.version = 0.1
-            self.author = "dongbox"
+            self.user = "dongbox"
+            self.password = "dongbox"
+            self.email = "sfreebobo@163.com"
             self.description = "Type your agent description here."
             self.environment = "Development"
             # TODO: Change it to a request and get below info.
-            self.system_name = "system"
-            self.system_address = "115.159.153.135"
-            self.system_port = "32771"
-            self.system_topic = "topic1"
+            # message queue config for transport
+            self.is_mq = False
+            self.mq_config = {
+                'system_name': "system",
+                'system_address': "115.159.153.135",
+                'system_port': 32771,
+                'system_topic': "topic1",
+                'username': 'dongbox',
+                'password': 'dongbox'
+            }
             self.default_pool_size = 5
             self.is_process_pool = False
+            # database for saving memory information
+            self.memory_storage_type = 'sqlite'
+            self.max_memory = 100
+            self.sql_tool = 'flask_sqlalchemy'
+            self.sql_config = {
+                'host': 'localhost',
+                'port': 3306,
+                'user': 'dongbox',
+                'password': 'dongbox'
+            }
         else:
             self.__dict__ = copy.copy(configs)
 
@@ -40,7 +58,7 @@ class ConfigHandler(Savable):
         self._is_updated = True  # update in save and read.
         self._config_cache = None  # control the IO.
 
-    def _read_config(self) -> dict:
+    def _read_config(self) -> Config:
         """
             Read the config from file if exist else generate.
         """

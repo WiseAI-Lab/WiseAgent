@@ -107,7 +107,7 @@ class ACLMessage(object):
             if performative.lower() in MessageType.performatives:
                 self.performative = performative.lower()
         self.conversation_id = str(uuid1())
-        self.messageID = str(uuid1())
+        self.message_id = str(uuid1())
         self.datetime = datetime.now()
         self.system_message = False
         self.sender = None
@@ -212,7 +212,7 @@ class ACLMessage(object):
         self.conversation_id = data
 
     def set_message_id(self):
-        self.messageID = str(uuid1())
+        self.message_id = str(uuid1())
 
     def set_reply_with(self, data):
         self.reply_with = data

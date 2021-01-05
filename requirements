@@ -1,8 +1,0 @@
-kafka-python
-confluent-kafka
-numpy
-click
-dicttoxml
-mypy
-async-property
-requests

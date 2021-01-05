@@ -11,7 +11,7 @@ class MemoryPiece(NamedTuple):
     observation: Any
     content: ACLMessage
     category: Any
-    priority: int  # Default implement from the behaviour.
+    priority: int  # Default derive from the behaviour.
     executors: Union[List[str], None]
 
 
