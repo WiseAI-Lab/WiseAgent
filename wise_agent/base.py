@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-from typing import Union
+from typing import Union, Optional
 
 from wise_agent.acl import AID
 from wise_agent.base_types import AgentState
@@ -18,7 +18,7 @@ class Agent_(Actor):
         self._status: str = AgentState.DEAD  # Represent the Agent State
         # Actually the agent should place their memory in brain, but I define the brain outside
         # this class because the brain is a thinking behaviour in 'wise_agent'.
-        self.config_handler = ConfigHandler()
+        self.config_handler: Optional[ConfigHandler, None] = None
         self.memory_pieces_queue: PriorityQueue = PriorityQueue(maxsize=100)  # Delivery any message in agent.
         self.memory_handler = MemoryHandler()  # Some function to handle the memory in agent.
 
@@ -63,7 +63,7 @@ class Agent_(Actor):
         else:
             raise ValueError('status must belong to the status list!')
 
-    def on_start(self):
+    def on_start(self, *args, **kwargs):
         """
             Init an agent.
         """

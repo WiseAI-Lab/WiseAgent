@@ -18,7 +18,7 @@ class Behaviour(core.Worker):
     external = "external"
     parts = [internal, external]
 
-    def __init__(self, agent: Agent_, pool_size: Optional[int] = None):
+    def __init__(self, agent: Agent_):
         """This method initializes the Behaviour class with an agent instance
 
             :param agent: agent instance that will execute the behaviours
@@ -29,17 +29,16 @@ class Behaviour(core.Worker):
         self.part: str = self.internal
         self.is_daemon = False
         # Define which size the pool are.
-        if pool_size:
-            self.pool_size = pool_size
-        else:
-            self.pool_size = self.agent.config_handler.read().default_pool_size
+        cur_config = self.agent.config_handler.config.get("behaviours").get(self.__class__.__name__)
+        self.pool_size = cur_config.get("pool_size")
         # Default pool
-        if self.agent.config_handler.read().is_process_pool:
+        self.is_process_pool = cur_config.get("is_process_pool")
+        if self.is_process_pool:
             self._tasks_pool = ProcessPoolExecutor(
                 max_workers=self.pool_size)
         else:
             self._tasks_pool = ThreadPoolExecutor(
-                max_workers=self.pool_size, thread_name_prefix='brain_')
+                max_workers=self.pool_size, thread_name_prefix='behaviour_')
 
         self._running_tasks: Dict[str, Future] = {}
 
