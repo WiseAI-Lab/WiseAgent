@@ -1,4 +1,7 @@
 from typing import Union, List, Mapping, Optional
+
+from behaviours.transport.behaviour import TransportBehaviour
+from config import ConfigHandler
 from wise_agent.acl import AID
 from wise_agent.behaviours.brain import BrainBehaviour
 from wise_agent.behaviours import Behaviour
@@ -62,7 +65,7 @@ class Agent(base.Agent_):
 
         """
 
-    def send(self, memory: MemoryPiece, is_outside=False):
+    def send(self, memory: MemoryPiece, is_outside=False, *args, **kwargs):
         """
         Send a memory.
 
@@ -81,7 +84,7 @@ class Agent(base.Agent_):
             message.set_datetime_now()
             self.transport_behaviour.push(message)
 
-    def on_start(self):
+    def on_start(self, *args, **kwargs):
         """
         Init an agent.
         You can define the basic behaviour for your agent and add it to 'Agent.behaviours' to manage.
@@ -102,21 +105,31 @@ class Agent(base.Agent_):
         """
         # Check brain first
         if self.brain_behaviour is None:
-            raise ValueError("Agent should have a brain behaviour.")
-        self.brain_behaviour = self.brain_behaviour(self)
-
+            for behaviour in self.behaviours:
+                if isinstance(behaviour, BrainBehaviour):
+                    self.brain_behaviour = behaviour
+        try:
+            self.brain_behaviour = self.brain_behaviour(self)
+            self.add_behaviours([self.brain_behaviour])
+        except TypeError:
+            assert self.brain_behaviour, "Agent should have a brain behaviour."
         # Check the behaviours second
         daemon_tasks: List[Behaviour] = []
         for behaviour in self.behaviours:
+            if isinstance(behaviour, BrainBehaviour):
+                continue
+
+            if isinstance(behaviour, TransportBehaviour):
+                continue
+
             if behaviour.is_daemon:
                 behaviour.on_start()
                 daemon_tasks.append(behaviour)
             else:
                 behaviour.on_start()
+
         if self.transport_behaviour is not None:
             self.transport_behaviour = self.transport_behaviour(self)  # use kafka to be the transport.
             self.add_behaviours([self.transport_behaviour])
-        # Add brain behaviour
-        self.add_behaviours([self.brain_behaviour])
         # Run brain behaviour in async.
         asyncio.run(self.brain_behaviour.on_start(daemon_tasks))

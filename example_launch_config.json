@@ -1,0 +1,55 @@
+{
+  "agent_name": "",
+  "name": "",
+  "behaviours": [
+    {
+      "name": "",
+      "configuration": {
+        "pool_size": "",
+        "process_pool": ""
+      }
+    }
+  ],
+  "repository": {
+    "name": "",
+    "category": ""
+  },
+  "configuration": {
+    "launch_types": [
+      "server",
+      "api",
+      "mq"
+    ],
+    "if_api": false,
+    "server": {
+      "host": "",
+      "port": ""
+    },
+    "mq_config": {
+      "sub_info": {
+        "{name}": {
+          "host": "",
+          "port": "",
+          "topics": [],
+          "username": "",
+          "password": ""
+        }
+      },
+      "pub_info": {
+        "{name}": {
+          "host": "",
+          "port": "",
+          "topics": [],
+          "username": "",
+          "password": ""
+        }
+      }
+    },
+    "sql_config": {
+      "host": "",
+      "port": "",
+      "username": "",
+      "password": ""
+    }
+  }
+}

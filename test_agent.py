@@ -1,13 +1,12 @@
 import asyncio
 import time
 from typing import Any, Tuple
-
 from wise_agent.acl.messages import MessageType
-from wise_agent.agents.agent import OnlineAgent
-from wise_agent.agents.agent import OfflineAgent
+from wise_agent.agents.agent import Agent
 from wise_agent.acl import AID, ACLMessage
 from wise_agent.behaviours import InternalBehaviour
-from wise_agent.behaviours.brain.visbb.FlaskVisualizationBrainBehaviour.behaviour import FlaskVisualizationBrainBehaviour
+from wise_agent.behaviours.brain.visbb.FlaskVisualizationBrainBehaviour.behaviour import \
+    FlaskVisualizationBrainBehaviour
 from wise_agent.memory import MemoryHandler
 
 
@@ -68,7 +67,7 @@ class DaemonBehaviour(InternalBehaviour):
             self.step()
 
 
-class AgentTestOnline(OnlineAgent):
+class AgentTestOnline(Agent):
     """
         Implement the OnlineAgent and default transport is confluent-kafka.
     """
@@ -81,7 +80,7 @@ class AgentTestOnline(OnlineAgent):
         super(AgentTestOnline, self).on_start()
 
 
-class RuledAgentOnline(OnlineAgent):
+class RuledAgentOnline(Agent):
     """
         Implement the OnlineAgent and default transport is confluent-kafka.
     """
@@ -124,7 +123,7 @@ class RuledAgentOnline(OnlineAgent):
         super(RuledAgentOnline, self).on_start()
 
 
-class AgentTestOffline(OfflineAgent):
+class AgentTestOffline(Agent):
     """
         Implement the OfflineAgent that it cannot contract other agents.
     """

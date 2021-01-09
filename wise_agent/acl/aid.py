@@ -19,8 +19,7 @@ class AID(object):
         if name is not None:
             if '@' in name:
                 self.name = name
-                self.localname, adress, topic = self.name.split('@')
-                self.topic = topic
+                self.localname, adress = self.name.split('@')
                 if ':' in adress:
                     self.host, self.port = adress.split(':')
                     self.port = int(self.port)
@@ -30,7 +29,6 @@ class AID(object):
                 self.localname = name
                 self.host = 'localhost'
                 self.port = '9092'
-                self.topic = 'test'
                 self.name = self.localname + '@' + self.host + ':' + str(self.port)
         else:
             self.name = None  # string
@@ -54,25 +52,21 @@ class AID(object):
         sets local name of the agent (string)
         """
         self.localname = name
-        self.name = self.localname + '@' + self.host + ':' + str(self.port) + '@' + self.topic
+        self.name = self.localname + '@' + self.host + ':' + str(self.port)
 
     def set_host(self, host):
         """
         sets host of the agent (string)
         """
         self.host = host
-        self.name = self.localname + '@' + self.host + ':' + str(self.port) + '@' + self.topic
+        self.name = self.localname + '@' + self.host + ':' + str(self.port)
 
     def set_port(self, port):
         """
         sets port of the agent (string)
         """
         self.port = port
-        self.name = self.localname + '@' + self.host + ':' + str(self.port) + '@' + self.topic
-
-    def set_topic(self, value):
-        self.topic = value
-        self.name = self.localname + '@' + self.host + ':' + str(self.port) + '@' + self.topic
+        self.name = self.localname + '@' + self.host + ':' + str(self.port)
 
     def match(self, other):
         """

@@ -1,3 +1,3 @@
-from .agent import Agent, OnlineAgent, OfflineAgent
+from .agent import Agent
 
-__all__ = ["Agent", "OnlineAgent", "OfflineAgent"]
+__all__ = ["Agent"]

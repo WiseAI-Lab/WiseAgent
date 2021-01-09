@@ -18,18 +18,6 @@ WGENT_LOG_KEY = 'WISE_AGENT_LOG'
 WGENT_LOG_FILE_KEY = 'WISE_AGENT_LOG_FILE'
 
 
-class BehaviourError(BaseException):
-    pass
-
-
-class AgentError(BaseException):
-    pass
-
-
-class AgentStoppedError(AgentError):
-    pass
-
-
 def display_message(name, data):
     """
         Method do display message in the console.
