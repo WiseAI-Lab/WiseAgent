@@ -6,4 +6,4 @@ WORKDIR /wgent
 
 # pip 源
 RUN pip install -r requirement.txt
-CMD ["python agent.py --config {config_path} --port 7979"]
+CMD ["python agent.py --config {config_path}"]

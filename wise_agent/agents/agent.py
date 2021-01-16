@@ -1,7 +1,6 @@
 from typing import Union, List, Mapping, Optional
 
-from behaviours.transport.behaviour import TransportBehaviour
-from config import ConfigHandler
+from wise_agent.behaviours.transport import TransportBehaviour
 from wise_agent.acl import AID
 from wise_agent.behaviours.brain import BrainBehaviour
 from wise_agent.behaviours import Behaviour
@@ -116,10 +115,7 @@ class Agent(base.Agent_):
         # Check the behaviours second
         daemon_tasks: List[Behaviour] = []
         for behaviour in self.behaviours:
-            if isinstance(behaviour, BrainBehaviour):
-                continue
-
-            if isinstance(behaviour, TransportBehaviour):
+            if isinstance(behaviour, BrainBehaviour) or issubclass(behaviour.__class__, BrainBehaviour):
                 continue
 
             if behaviour.is_daemon:
