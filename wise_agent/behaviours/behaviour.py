@@ -30,9 +30,13 @@ class Behaviour(core.Worker):
         self.is_daemon = False
         # Define which size the pool are.
         cur_config = self.agent.config_handler.config.get("behaviours").get(self.__class__.__name__)
-        self.pool_size = cur_config.get("pool_size")
-        # Default pool
-        self.is_process_pool = cur_config.get("is_process_pool")
+        if not cur_config:
+            self.pool_size = 5
+            self.is_process_pool = False
+        else:
+            self.pool_size = cur_config.get("pool_size", 5)
+            # Default pool
+            self.is_process_pool = cur_config.get("is_process_pool", False)
         if self.is_process_pool:
             self._tasks_pool = ProcessPoolExecutor(
                 max_workers=self.pool_size)
@@ -41,6 +45,7 @@ class Behaviour(core.Worker):
                 max_workers=self.pool_size, thread_name_prefix='behaviour_')
 
         self._running_tasks: Dict[str, Future] = {}
+        self.behaviour_config = cur_config
 
     def execute(self, message: ACLMessage):
         """

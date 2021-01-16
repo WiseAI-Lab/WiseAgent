@@ -20,7 +20,14 @@ class ConfigHandler(Savable):
         self.config_path = self._config.get("config_path")
 
     @staticmethod
-    def init_check(config_data: dict):
+    def get_from_unknown_object(data):
+        try:
+            info = eval(data)
+        except TypeError:
+            info = data
+        return info
+
+    def init_check(self, config_data: dict):
         # Check agent name
         try:
             agent_name = config_data.get("agent_name", None)
@@ -32,10 +39,7 @@ class ConfigHandler(Savable):
         except TypeError:
             raise TypeError("")
         # Load configuration
-        try:
-            agent_configuration = eval(config_data.get("configuration"))
-        except Exception as e:
-            raise e
+        agent_configuration = self.get_from_unknown_object(config_data.get("configuration"))
         # Check Launch_types
         try:
             launch_types = agent_configuration.get("launch_types", None)
@@ -67,16 +71,6 @@ class ConfigHandler(Savable):
         except Exception as e:
             raise ValueError(f"`launch_types` Error, {e}")
 
-        # Check Database
-        sql_config = agent_configuration.get("sql_config")
-        if sql_config and len(sql_config) != 0:
-            agent_configuration["if_sql"] = True
-            try:
-                sql_config_pre = ["host", "port", "username", "password"]
-                assert len(set(sql_config_pre).intersection(set(sql_config))) == len(sql_config_pre), \
-                    f"`sql_config` should contains all information in {sql_config_pre}"
-            except Exception as e:
-                raise ValueError(e)
         # Check Behaviours
         behaviours = config_data.get("behaviours")
         assert isinstance(behaviours, dict)
@@ -84,7 +78,7 @@ class ConfigHandler(Savable):
             new_behaviours = {}
             for name, behaviour in behaviours.items():
                 bev_pre = ["pool_size", "process_pool"]
-                configuration = eval(behaviour.get("configuration"))
+                configuration = self.get_from_unknown_object(behaviour.get("configuration"))
                 assert len(set(bev_pre).intersection(set(configuration.keys()))) == len(bev_pre), \
                     f"config in behaviour should contains all information in {bev_pre}"
                 behaviour["configuration"] = configuration

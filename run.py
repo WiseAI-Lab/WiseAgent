@@ -4,22 +4,40 @@
 import importlib
 import sys
 
-sys.path.append("C:\\Users\\bobo/wise_agent_1/wise_agent/behaviours")
-print(sys.path)
-from wise_agent.config import ConfigHandler
+from config import ConfigHandler
 from wise_agent.agents.agent import Agent
+import argparse
+
+parser = argparse.ArgumentParser()  # 添加参数
+parser.add_argument('--config_path', help='Config file path', default="example_launch_config.json")
+args = parser.parse_args()
 
 
-class MainAgent(Agent):
-    def __init__(self, aid):
-        super(MainAgent, self).__init__(aid)
+def start_agent(config_path: str, agent_class=Agent, init_behaviour_list: list = None):
+    """
+        Start a Agent.
+    Args:
+        config_path: config for an agent
+        agent_class: Agent class
+        init_behaviour_list: list
 
+    Returns:
 
-def start_agent(config_path: str):
+    """
     config = ConfigHandler(config_path)
+    root_dir = config.get("root_dir")
+    sys.path.append(f"{root_dir}/wise_agent/behaviours")
     aid = config.get_aid()
-    agent = MainAgent(aid)
+    # assert isinstance(agent_class, Agent), "`agent_class` should be an Agent."
+    agent = agent_class(aid)
     agent.config_handler = config
+    # behaviour in agent
+    if init_behaviour_list:
+        new_behaviours = []
+        for b in init_behaviour_list:
+            new_behaviours.append(b(agent))
+        agent.add_behaviours(new_behaviours)
+    # behaviour in config
     behaviours = config.get("behaviours")
     agent_behaviours = []
     try:
@@ -34,5 +52,4 @@ def start_agent(config_path: str):
 
 
 if __name__ == '__main__':
-    url = "C:\\Users\\bobo\\.wiseai\\wise_agent_1\\agent_config.json"
-    start_agent(url)
+    start_agent(args.config_path)

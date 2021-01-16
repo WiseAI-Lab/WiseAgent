@@ -1,5 +1,4 @@
 .idea/
-pade/
 test/
 tianshou/
 setup.py
@@ -9,5 +8,4 @@ logs/
 /wise_agent/.agent_config.json
 .mypy_cache
 /wise_agent/behaviours/brain/visbb
-/wise_agent/behaviours/transport
-AgriculturalAgent.py
+/wise_agent/behaviours/transport/mqtb
