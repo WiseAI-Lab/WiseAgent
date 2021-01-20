@@ -1,15 +1,17 @@
 """Common types used throughout wise_agent."""
+from collections import namedtuple
 from typing import Sequence, NamedTuple, List, Any, Union
 
 from wise_agent.acl import ACLMessage
+
+AgentInfo = namedtuple('AgentInfo', ['name', 'host', 'port', 'delta'])
 
 
 class MemoryPiece(NamedTuple):
     """
         Memory format in the pipe.
     """
-    observation: Any
-    content: ACLMessage
+    message: ACLMessage
     category: Any
     priority: int  # Default derive from the behaviour.
     executors: Union[List[str], None]

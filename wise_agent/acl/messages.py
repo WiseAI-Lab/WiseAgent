@@ -13,52 +13,7 @@ import json
 from datetime import datetime
 from uuid import uuid1
 from .aid import AID
-from typing import Optional, Union, NoReturn, List, Dict
-
-
-class MessageType(object):
-    """
-        Class that implements a ACLMessage message type
-    """
-    # performatives
-    ACCEPT_PROPOSAL = 'accept-proposal'
-    AGREE = 'agree'
-    CANCEL = 'cancel'
-    CFP = 'cfp'
-    CONFIRM = 'confirm'
-    DISCONFIRM = 'disconfirm'
-    FAILURE = 'failure'
-    INFORM = 'inform'
-    NOT_UNDERSTOOD = 'not-understood'
-    PROPOSE = 'propose'
-    QUERY_IF = 'query-if'
-    QUERY_REF = 'query-ref'
-    REFUSE = 'refuse'
-    REJECT_PROPOSAL = 'reject-proposal'
-    REQUEST = 'request'
-    REQUEST_WHEN = 'request-when'
-    REQUEST_WHENEVER = 'request-whenever'
-    SUBSCRIBE = 'subscribe'
-    INFORM_IF = 'inform-if'
-    PROXY = 'proxy'
-    PROPAGATE = 'propagate'
-    HEARTBEAT = 'heartbeat'
-    # protocols
-    FIPA_REQUEST_PROTOCOL = 'fipa-request protocol'
-    FIPA_QUERY_PROTOCOL = 'fipa-query protocol'
-    FIPA_REQUEST_WHEN_PROTOCOL = 'fipa-request-when protocol'
-    FIPA_CONTRACT_NET_PROTOCOL = 'fipa-contract-net protocol'
-    FIPA_SUBSCRIBE_PROTOCOL = 'fipa-subscribe-protocol'
-
-    performatives = ['accept-proposal', 'agree', 'cancel',
-                     'cfp', 'call-for-proposal', 'confirm', 'disconfirm',
-                     'failure', 'inform', 'not-understood',
-                     'propose', 'query-if', 'query-ref',
-                     'refuse', 'reject-proposal', 'request',
-                     'request-when', 'request-whenever', 'subscribe',
-                     'inform-if', 'proxy', 'propagate', 'heartbeat']
-    protocols = ['fipa-request protocol', 'fipa-query protocol', 'fipa-request-when protocol',
-                 'fipa-contract-net protocol']
+from typing import Optional, Union, List, Dict
 
 
 class ACLMessage(object):
@@ -101,10 +56,48 @@ class ACLMessage(object):
             reply-by: Denotes a time and/or date expression which indicates the latest time by which
                     the sending agent would like to receive a reply.
     """
+    ACCEPT_PROPOSAL = 'accept-proposal'
+    AGREE = 'agree'
+    CANCEL = 'cancel'
+    CFP = 'cfp'
+    CONFIRM = 'confirm'
+    DISCONFIRM = 'disconfirm'
+    FAILURE = 'failure'
+    INFORM = 'inform'
+    NOT_UNDERSTOOD = 'not-understood'
+    PROPOSE = 'propose'
+    QUERY_IF = 'query-if'
+    QUERY_REF = 'query-ref'
+    REFUSE = 'refuse'
+    REJECT_PROPOSAL = 'reject-proposal'
+    REQUEST = 'request'
+    REQUEST_WHEN = 'request-when'
+    REQUEST_WHENEVER = 'request-whenever'
+    SUBSCRIBE = 'subscribe'
+    INFORM_IF = 'inform-if'
+    PROXY = 'proxy'
+    PROPAGATE = 'propagate'
+    HEARTBEAT = 'heartbeat'
+    # protocols
+    FIPA_REQUEST_PROTOCOL = 'fipa-request protocol'
+    FIPA_QUERY_PROTOCOL = 'fipa-query protocol'
+    FIPA_REQUEST_WHEN_PROTOCOL = 'fipa-request-when protocol'
+    FIPA_CONTRACT_NET_PROTOCOL = 'fipa-contract-net protocol'
+    FIPA_SUBSCRIBE_PROTOCOL = 'fipa-subscribe-protocol'
+
+    performatives = ['accept-proposal', 'agree', 'cancel',
+                     'cfp', 'call-for-proposal', 'confirm', 'disconfirm',
+                     'failure', 'inform', 'not-understood',
+                     'propose', 'query-if', 'query-ref',
+                     'refuse', 'reject-proposal', 'request',
+                     'request-when', 'request-whenever', 'subscribe',
+                     'inform-if', 'proxy', 'propagate', 'heartbeat']
+    protocols = ['fipa-request protocol', 'fipa-query protocol', 'fipa-request-when protocol',
+                 'fipa-contract-net protocol']
 
     def __init__(self, performative: Optional[str] = None):
         if performative != None:
-            if performative.lower() in MessageType.performatives:
+            if performative.lower() in ACLMessage.performatives:
                 self.performative = performative.lower()
         self.conversation_id = str(uuid1())
         self.message_id = str(uuid1())
@@ -150,39 +143,40 @@ class ACLMessage(object):
            :param performative: performative type of the message.
            It can be any of the attributes of the ACLMessage class.
         """
-        if performative in MessageType.performatives:
+        if performative in ACLMessage.performatives:
             self.performative = performative
         else:
             raise ValueError("Performative is not exists.")
 
-    def set_system_message(self, is_system_message) -> NoReturn:
+    def set_system_message(self, is_system_message):
         self.system_message = is_system_message
 
-    def set_datetime_now(self) -> NoReturn:
+    def set_datetime_now(self):
         self.datetime = datetime.now()
 
-    def set_sender(self, aid: Union[AID, str]) -> NoReturn:
+    def set_sender(self, aid: Union[AID, str]):
         """Method to set the agent that will send the message.
 
         :param aid: AID type object that identifies the agent that will send the message.
         """
-        if isinstance(aid, AID):
+        res = isinstance(aid, AID)
+        if res or issubclass(aid.__class__, AID):
             self.sender = aid
         else:
-            self.set_sender(AID(name=aid))
+            self.set_sender(AID(aid))
 
-    def add_receiver(self, aid: Union[AID, str]) -> NoReturn:
+    def add_receiver(self, aid: Union[AID, str]):
         """Method used to add recipients for the message being created.
 
         :param aid: AID type object that identifies the agent that will receive the message.
         """
 
-        if isinstance(aid, AID):
-            self.receivers.append(aid)
+        if not isinstance(aid, AID):
+            self.add_receiver(AID(aid))
         else:
-            self.add_receiver(AID(name=aid))
+            self.receivers.append(aid)
 
-    def add_reply_to(self, aid: Union[AID, str]) -> NoReturn:
+    def add_reply_to(self, aid: Union[AID, str]):
         """Method used to add the agents that should receive the answer of the message.
 
         :param aid: AID type object that identifies the agent that will receive the answer of this message.
@@ -321,15 +315,14 @@ class ACLMessage(object):
         # Remove the unpicklable entries.
         return state
 
-    def encode(self, mode: Optional[str] = "json") -> Union[str, Dict, bytes]:
-        if mode == "json":
-            return json.dumps(self._as_dict()).encode("utf8")
-        elif mode == "dict":
-            return self._as_dict()
-        elif mode == "xml":
-            return self._as_xml()
-        else:
-            raise KeyError("mode should be json, dict or xml")
+    def as_json(self) -> Union[str, Dict, bytes]:
+        return json.dumps(self._as_dict()).encode("utf8")
+
+    def as_dict(self) -> Union[str, Dict, bytes]:
+        return self._as_dict()
+
+    def as_xml(self) -> Union[str, Dict, bytes]:
+        return self._as_xml()
 
     def decode(self, content: Union[str, Dict], mode: Optional[str] = None):
         if mode is None:

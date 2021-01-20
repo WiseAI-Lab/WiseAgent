@@ -11,6 +11,7 @@ from functools import partial
 from typing import Dict, Union, Any
 
 import click
+
 # Env Config.
 
 WGENT_LOG_KEY = 'WISE_AGENT_LOG'
@@ -93,6 +94,28 @@ def start_task(running_tasks: Dict[str, Future],
     return running_tasks
 
 
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('%s |%s| %s%% %s' % (prefix, bar, percent, suffix))
+    # Print New Line on Complete
+    # if iteration == total:
+    #     print()
+
+
 def get_logger(name: str) -> logging.Logger:
     """
     configured Loggers
@@ -136,5 +159,3 @@ def get_logger(name: str) -> logging.Logger:
 
 
 logger = get_logger("wgent_log")
-
-

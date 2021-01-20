@@ -1,32 +1,27 @@
 {
   "name": "v1",
-  "behaviours": {
-    "FlaskVisualizationBrainBehaviour": {
-      "name": "FlaskVisualizationBrainBehaviour_v1",
-      "configuration": {
-        "pool_size": "",
-        "process_pool": ""
-      },
-      "description": "Version of Behaviour",
-      "status": 1,
-      "url": "https://github.com/WiseAI-Lab/Behaviours/releases/download/FlaskVisualizationBrainBehaviour_v1/FlaskVisualizationBrainBehaviour.zip",
-      "store_type": "zip",
-      "category": "brain.visbb",
-      "import_path": "brain.visbb.FlaskVisualizationBrainBehaviour.behaviour"
+  "behaviours": {},
+  "agents": {
+    "Example1": {
+      "aid": "VisualAgent@localhost:8000",
+      "name": "VisualAgent",
+      "import_path": "examples.agriculture.visual_agent",
+      "is_ams": true,
+      "requirements": []
     },
-    "PahoMQTTMessageTransportBehaviour": {
-      "name": "PahoMQTTMessageTransportBehaviour_v1",
-      "configuration": {
-        "pool_size": "",
-        "process_pool": ""
-      },
-      "description": "Version of Behaviour",
-      "status": 1,
-      "url": "local",
-      "store_type": "git",
-      "category": "transport.mqtb.mqtt",
-      "import_path": "transport.mqtb.mqtt.mqtt_paho",
-      "table": "MessageQueueTransportTable"
+    "Example2": {
+      "aid": "MQTTAgent@localhost:8001",
+      "name": "MQTTAgent",
+      "import_path": "examples.agriculture.mqtt_agent",
+      "is_ams": false,
+      "requirements": []
+    },
+    "Example3": {
+      "aid": "QueryAgent@localhost:8002",
+      "name": "QueryAgent",
+      "import_path": "examples.agriculture.query_agent",
+      "is_ams": false,
+      "requirements": ["pyADL==20200910.1"]
     }
   },
   "configuration": {
@@ -44,79 +39,12 @@
       "sub_info": {},
       "pub_info": {}
     },
-    "sql_config": "mysql://root:dongbox@localhost:3305/employees?set_encoding=utf8mb4"
+    "sql_config": ""
   },
   "description": "Version of Basic Agent",
   "url": "https://github.com/WiseAI-Lab/WiseAgent.git",
   "status": 1,
-  "repository": {
-    "topics": [
-      {
-        "id": 1,
-        "name": "v1"
-      }
-    ],
-    "name": "BasicAgent",
-    "category": {
-      "id": 1,
-      "name": "agent"
-    },
-    "description": "It's a Basic Agent that contains Offline And OnlineAgent",
-    "owner": {
-      "id": 1,
-      "name": "dongbox"
-    },
-    "configuration_template": {
-      "launch_types": [
-        "server",
-        "api",
-        "mq"
-      ],
-      "if_api": false,
-      "server": {
-        "host": "",
-        "port": ""
-      },
-      "mq_config": {
-        "sub_info": {
-          "{name}": {
-            "host": "",
-            "port": "",
-            "topics": [],
-            "username": "",
-            "password": ""
-          }
-        },
-        "pub_info": {
-          "{name}": {
-            "host": "",
-            "port": "",
-            "topics": [],
-            "username": "",
-            "password": ""
-          }
-        }
-      },
-      "sql_config": {
-        "host": "",
-        "port": "",
-        "username": "",
-        "password": ""
-      }
-    },
-    "is_verify": true,
-    "is_private": false,
-    "is_archived": null,
-    "is_mirror": false,
-    "is_office": true,
-    "num_watches": 0,
-    "num_stars": 0,
-    "status": true,
-    "is_template": true,
-    "template_id": null,
-    "avatar": "http://www.gravatar.com/avatar/9adb150cf8ecaae09a46450b556b8066?s=256&d=identicon"
-  },
   "store_type": "git",
   "root_dir": "./",
-  "config_path": "wise_agent/example_launch_config.json"
+  "config_path": "example_launch_config.json"
 }

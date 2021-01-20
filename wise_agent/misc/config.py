@@ -1,8 +1,9 @@
 import json
 import os
 
-from wise_agent.core import Savable
-from wise_agent.utility import logger
+from wise_agent.acl import AID
+from wise_agent.base import Savable
+from .utility import logger
 
 
 class ConfigHandler(Savable):
@@ -137,7 +138,7 @@ class ConfigHandler(Savable):
             server = f"{host}:{port}"
         else:
             server = "localhost:8989"
-        aid = f"{agent_name}@{server}"
+        aid = AID(f"{agent_name}@{server}")
         return aid
 
     def _save_config(self, config):
