@@ -1,74 +1,41 @@
-from queue import PriorityQueue
-from typing import Union, Optional
-
-from wise_agent.acl import AID
-from wise_agent.base_types import AgentState
-from wise_agent.config import ConfigHandler
-from wise_agent.core import Actor
-from wise_agent.memory import MemoryHandler
+import abc
+from typing import Any
+from typing import Sequence
 
 
-class Agent_(Actor):
-    """
-        An agent, which have some basic property.
+class Actor(abc.ABC):
+    """Interface for an agent that can act.
+    This interface defines an API for an Actor to interact with an Environment
+
     """
 
-    def __init__(self, aid: Union[AID, str]):
-        self._aid: Union[AID, str] = aid  # Identifier
-        self._status: str = AgentState.DEAD  # Represent the Agent State
-        # Actually the agent should place their memory in brain, but I define the brain outside
-        # this class because the brain is a thinking behaviour in 'wise_agent'.
-        self.config_handler: Optional[ConfigHandler, None] = None
-        self.memory_pieces_queue: PriorityQueue = PriorityQueue(maxsize=100)  # Delivery any message in agent.
-        self.memory_handler = MemoryHandler()  # Some function to handle the memory in agent.
-
-    @property
-    def aid(self):
+    def capture(self, info: Sequence[Any]):
+        """Capture all information from environment.
         """
-        AID getter
 
-        Returns: aid
-        """
-        return self._aid
-
-    @aid.setter
-    def aid(self, value: AID):
-        """
-        AID setter
-
+    def update(self, *args, wait: bool = False, **kwargs):
+        """Perform an update of the actor parameters from past observations.
         Args:
-            value: AID
-
-        Returns: None
-
-        Raises:
-            ValueError, aid should be 'AID' object.
-        """
-        if isinstance(value, AID):
-            self._aid = value
-        else:
-            raise ValueError('aid object type must be AID!')
-
-    @property
-    def status(self):
-        return self._status
-
-    @status.setter
-    def status(self, value):
-        """
-            status setter
-        """
-        if value in AgentState.agent_statuses:
-            self._status = value
-        else:
-            raise ValueError('status must belong to the status list!')
-
-    def on_start(self, *args, **kwargs):
-        """
-            Init an agent.
+          wait: if True, the update will be blocking.
         """
 
-    def send(self, *args, **kwargs):
+
+class Worker(abc.ABC):
+    """An interface for (potentially) distributed workers."""
+
+    @abc.abstractmethod
+    def run(self):
+        """Runs the worker."""
+
+    @abc.abstractmethod
+    def step(self):
+        """Perform an update step of the learner's parameters."""
+
+
+class Savable(abc.ABC):
+
+    @abc.abstractmethod
+    def save(self, value: Any):
         """
-            A send function and it will different between agents.
+            Save a object
         """

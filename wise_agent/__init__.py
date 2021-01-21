@@ -1,1 +1,3 @@
-__all__ = ["agents", "behaviours", "acl"]
+from wise_agent.core import Agent
+
+__all__ = ["Agent"]

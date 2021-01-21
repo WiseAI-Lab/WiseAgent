@@ -7,5 +7,5 @@ logs/
 .vscode
 /wise_agent/.agent_config.json
 .mypy_cache
-/wise_agent/behaviours/brain/visbb
-/wise_agent/behaviours/transport/mqtb
+#/wise_agent/behaviours/brain/VisualAgent
+#/wise_agent/behaviours/ProtocolAgent/mqpa

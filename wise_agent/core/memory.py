@@ -2,7 +2,7 @@ from queue import Queue
 from typing import List, Optional, Any
 
 from wise_agent.acl import ACLMessage
-from wise_agent.base_types import MemoryPiece
+from .types import MemoryPiece
 
 
 class MemoryHandler(object):
@@ -27,8 +27,9 @@ class MemoryHandler(object):
         Returns: MemoryPiece
 
         """
-        memory_piece = MemoryPiece(observation=None, content=message,
-                                   priority=priority, category=category,
+        memory_piece = MemoryPiece(message=message,
+                                   priority=priority,
+                                   category=category,
                                    executors=behaviors)
         return memory_piece
 

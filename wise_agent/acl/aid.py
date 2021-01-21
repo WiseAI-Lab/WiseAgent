@@ -1,7 +1,7 @@
 """
     Agent Identifier Class
 """
-from wise_agent.utility import random_string
+from wise_agent.misc.utility import random_string
 
 
 class AID(object):
@@ -90,12 +90,14 @@ class AID(object):
         """
         if other is None:
             return False
-
-        if (self.name is not None and other.get_name() is not None
-                and self.name != other.get_name()):
+        if isinstance(other, AID):
+            if (self.name is not None and other.name is not None
+                    and self.name != other.name):
+                return False
+            return True
+        else:
             return False
 
-        return True
 
     def __ne__(self, other):
         """
